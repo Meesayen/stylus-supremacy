@@ -87,6 +87,8 @@ function execute(command, params = [], Console = console) {
 						})
 
 						outputContent = stringify(ast)
+							// NOTE: this is necessary, 'cause himalaya outputs top level tags with single quotes
+							.replace(/ lang='(.*?)'/gm, ' lang="$1"')
 					} else {
 						outputContent = format(inputContent, formattingOptions)
 					}
