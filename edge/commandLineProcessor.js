@@ -5,13 +5,14 @@ const glob = require('glob')
 const _ = require('lodash')
 const JSON5 = require('json5')
 const YAML = require('js-yaml')
+const {parse, stringify} = require('himalaya')
 
 const format = require('./format')
 const createFormattingOptions = require('./createFormattingOptions')
 const createFormattingOptionsFromStylint = require('./createFormattingOptionsFromStylint')
 const checkIfFilePathIsIgnored = require('./checkIfFilePathIsIgnored')
 
-function process(command, params = [], Console = console) {
+function execute(command, params = [], Console = console) {
 	if (command === '--version' || command === '-v') {
 		Console.log('v' + require('../package.json').version)
 
@@ -67,9 +68,29 @@ function process(command, params = [], Console = console) {
 					Console.log('»', path)
 				}
 
+				const isVueFile = path.endsWith('.vue')
+
 				try {
-					const inputContent = fs.readFileSync(path, 'utf8')
-					const outputContent = format(inputContent, formattingOptions)
+					let inputContent = fs.readFileSync(path, 'utf8')
+					let outputContent
+
+					if (isVueFile) {
+						const ast = parse(inputContent)
+						const stylusNodes = ast
+							.filter(node => node.type === 'element' &&
+							node.tagName === 'style' &&
+							(node.attributes || [])
+								.some(attr => attr.key === 'lang' && attr.value === 'stylus')
+						)
+						stylusNodes.forEach(node => {
+							node.children[0].content = format(node.children[0].content, formattingOptions)
+						})
+
+						outputContent = stringify(ast)
+					} else {
+						outputContent = format(inputContent, formattingOptions)
+					}
+
 
 					if (dryRunParams.length > 0) {
 						// Do nothing
@@ -115,4 +136,4 @@ function getParam(paramArray, names, nextValueCount = 0) {
 	return []
 }
 
-module.exports = process
+module.exports = execute
