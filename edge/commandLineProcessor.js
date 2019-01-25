@@ -5,7 +5,6 @@ const glob = require('glob')
 const _ = require('lodash')
 const JSON5 = require('json5')
 const YAML = require('js-yaml')
-const {parse, stringify} = require('himalaya')
 
 const format = require('./format')
 const createFormattingOptions = require('./createFormattingOptions')
@@ -75,22 +74,15 @@ function execute(command, params = [], Console = console) {
 					let outputContent
 
 					if (isVueFile) {
-						const ast = parse(inputContent)
-						const stylusNodes = ast
-							.filter(node => node.type === 'element' &&
-							node.tagName === 'style' &&
-							(node.attributes || [])
-								.some(attr => attr.key === 'lang' && attr.value === 'stylus')
-						)
-						stylusNodes.forEach(node => {
-							if (node.children) {
-								node.children[0].content = format(node.children[0].content, formattingOptions)
-							}
-						})
-
-						outputContent = stringify(ast)
-							// NOTE: this is necessary, 'cause himalaya outputs top level tags with single quotes
-							.replace(/ lang='(.*?)'/gm, ' lang="$1"')
+            outputContent = inputContent.replace(
+              /<style(.*?)>([\w\W\s]+?)<\/style>/gm,
+              (_, $1, $2) => {
+                if ($1.includes('lang="stylus')) {
+                  return `<style${$1}>${format($2, formattingOptions)}</style>`
+                }
+                return `<style${$1}>${$2}</style>`
+              }
+            )
 					} else {
 						outputContent = format(inputContent, formattingOptions)
 					}
