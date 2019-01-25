@@ -83,7 +83,9 @@ function execute(command, params = [], Console = console) {
 								.some(attr => attr.key === 'lang' && attr.value === 'stylus')
 						)
 						stylusNodes.forEach(node => {
-							node.children[0].content = format(node.children[0].content, formattingOptions)
+							if (node.children) {
+								node.children[0].content = format(node.children[0].content, formattingOptions)
+							}
 						})
 
 						outputContent = stringify(ast)
